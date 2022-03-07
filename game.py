@@ -23,7 +23,6 @@ SIDE_BACK = 1
 
 BOUNCE_ENERGY = 0.8
 
-
 # We store cards as numbers 1-13, since we only need
 # to know their order for solitaire.
 SUITS = ["C", "S", "H", "D"]
@@ -616,7 +615,6 @@ class MainWindow(QMainWindow):
         self.actualScore.setBrush(QColor('white'))
         self.actualScore.setPos(475, 0)
         self.scene.addItem(self.actualScore)
-        
 
         self.setWindowTitle("Group 5 Solitaire")
         self.setWindowIcon(QIcon('Images/frameiconico.ico'))
