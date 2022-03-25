@@ -18,6 +18,8 @@ Implementations:
 - [x] Vegas mode enabled (max 3 rounds of stockpile withdrawal)
 - [x] Cards from stockpile can be withdrawn by 1 card or 3 cards
 - [x] Timer displayed
+- [x] Working Score System
+- [ ] Save current game scores and see previous game scores
 
 
 Logic:
