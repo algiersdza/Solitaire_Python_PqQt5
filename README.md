@@ -39,7 +39,3 @@ Logic:
 - [x] Stockpile must maintain order set by talon pile when re-stocking.
 - [x] User must be able to start a new game, thus receiving a freshly shuffled deck of cards
 
-
-Working Score System
-Score must reflect accurately
-
