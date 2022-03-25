@@ -1,0 +1,43 @@
+
+##########################
+Version 0.7
+##########################
+
+- Added Splashscreen aka loading screen.
+- Stockpile rotation is now tracked for Vegas mode and scoring purposes.
+- Application will track users scoring and reflected on the GUI
+- Application will track users moves and reflected on the GUI
+- Timer now resets on game restart and is tracked for scoring purposes.
+- Moves now resets on game restart.
+- Scoring now resets on game restart.
+
+
+##########################
+Version 0.6
+##########################
+
+- Drag and Drop animation of card moves added.
+- A timer is added.
+- Menu functions of the UI are added.
+- Vegas Mode is added (3 stockpile rotations only).
+- Application can now restart and reshuffles a new set of cards.
+- Application now checks if win condition is satisfied and will display a win animation.
+- User can choose from the menu tab the amount of cards withdrawn from the stockpile
+
+##########################
+Version 0.5
+##########################
+
+- Application now knows how to deal cards according to Solitaire Rules.
+- Application now displays back and face of the cards correctly.
+- Increased and modified card sizes from previous versions.
+- Card suits and values are appropriately displayed.
+- The Tableau is created and functional.
+- Stockpile is created and keeps track of cards.
+
+##########################
+Version 0.1
+##########################
+
+- Created UI
+- Added UI properties and widgets

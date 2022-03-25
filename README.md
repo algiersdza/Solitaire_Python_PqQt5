@@ -3,7 +3,7 @@
 
 Solitaire developed on Python with PyQt5.
 
-#### Current Version: 0.6.0
+#### Current Version: 0.7
 
 Implementations:
 
@@ -37,8 +37,7 @@ Logic:
 - [x] Stockpile must maintain order set by talon pile when re-stocking.
 - [x] User must be able to start a new game, thus receiving a freshly shuffled deck of cards
 
-Additional Requirements
-````
+
 Working Score System
-Score must reflect accuratly
-````
+Score must reflect accurately
+

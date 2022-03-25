@@ -1,12 +1,42 @@
 import os
 import random
+import time
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5 import QtCore
+
+# rgb(200, 255, 255)
+StyleSheet = """
+QProgressBar {
+                background-color: grey;
+                color: black;
+                border-style: solid;
+                border-radius: 19px;
+                text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: rgb(200, 255, 255);
+}
+"""
+# save files and read files will go here
+# function to open a new window to showcase previous games (read from)
+# function to save and write new lines of games with score and game time, plus system time (write)
+#
+#
+#
+#
+#
+#
+#
+#
 
 WINDOW_SIZE = 900, 700
 
+VERSION_NUMBER = 0.7
+VERSION_NUMBER_STR = "Version " + str(VERSION_NUMBER)
 CARD_DIMENSIONS = QSize(63, 96)
 CARD_RECT = QRect(0, 0, 63, 96)
 CARD_SPACING_X = 110
@@ -26,12 +56,24 @@ BOUNCE_ENERGY = 0.8
 # We store cards as numbers 1-13, since we only need
 # to know their order for solitaire.
 SUITS = ["C", "S", "H", "D"]
+# Keep track of moves and foundation scores and moves scores
+moves = 0
+foundation_score = 0
+total_score = 0
+move_score = 0
 
 
 class Signals(QObject):
     complete = pyqtSignal()
     clicked = pyqtSignal()
     doubleclicked = pyqtSignal()
+    #updated_score = pyqtSignal()
+
+
+class HelperMonka(QObject):
+     updated_score = pyqtSignal(int)
+     updated_moves = pyqtSignal(int)
+
 
 
 class Card(QGraphicsPixmapItem):
@@ -40,6 +82,7 @@ class Card(QGraphicsPixmapItem):
         super(Card, self).__init__(*args, **kwargs)
 
         self.signals = Signals()
+        self.helpers = HelperMonka()
 
         self.stack = None  # Stack this card currently is in.
         self.child = None  # Card stacked on this one (for work deck).
@@ -115,12 +158,21 @@ class Card(QGraphicsPixmapItem):
                         # Note: the only place there will be children is on a workstack.
                         cards = self.stack.remove_card(self)
                         item.stack.add_cards(cards)
+                        self.move_registered()
                         break
-
         # Refresh this card's stack, pulling it back if it was dropped.
         self.stack.update()
 
         super(Card, self).mouseReleaseEvent(e)
+
+    def move_registered(self):
+        global moves, move_score, total_score, foundation_score
+        moves += 1
+        move_score += 3
+        total_score = foundation_score + move_score
+        self.helpers.updated_score.emit(total_score)
+        self.helpers.updated_moves.emit(moves)
+
 
     def mouseDoubleClickEvent(self, e):
         if self.stack.is_free_card(self):
@@ -179,6 +231,7 @@ class StackBase(QGraphicsRectItem):
         card.stack = None
         self.cards.remove(card)
         self.update()
+
         return [card]  # Returns a list, as WorkStack must return children
 
     def remove_all_cards(self):
@@ -187,9 +240,11 @@ class StackBase(QGraphicsRectItem):
         self.cards = []
 
     def is_valid_drop(self, card):
+
         return True
 
     def is_free_card(self, card):
+
         return False
 
 
@@ -210,7 +265,6 @@ class DeckStack(StackBase):
             card.turn_back_up()
 
     def can_restack(self, n_rounds=3):
-        print('hi im checking')
         return n_rounds is None or self.restack_counter < n_rounds - 1
 
     def update_stack_status(self, n_rounds):
@@ -354,15 +408,16 @@ class WorkStack(StackBase):
                 offset_y = self.offset_y_back
 
 
+# foundations
 class DropStack(StackBase):
     offset_x = -0.2
     offset_y = -0.3
-
     suit = None
     value = 0
 
     def setup(self):
         self.signals = Signals()
+        self.helpers = HelperMonka()
         color = QColor(Qt.blue)
         color.setAlpha(50)
         pen = QPen(color)
@@ -377,9 +432,17 @@ class DropStack(StackBase):
     def is_valid_drop(self, card):
         if ((self.suit is None or card.suit == self.suit) and
                 (card.value == self.value + 1)):
+            self.register_score()
             return True
 
         return False
+
+    def register_score(self):
+        global foundation_score, total_score, move_score
+        foundation_score += 5
+        total_score = foundation_score + move_score
+        self.helpers.updated_score.emit(total_score)
+
 
     def add_card(self, card, update=True):
         super(DropStack, self).add_card(card, update=update)
@@ -427,7 +490,7 @@ class AnimationCover(QGraphicsRectItem):
 
 
 class HelpWindow(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None):  # parent=None
         super(HelpWindow, self).__init__()
         self.setWindowTitle("Rules")
         self.setWindowIcon(QIcon('Images/info.ico'))
@@ -451,19 +514,52 @@ class HelpWindow(QDialog):
         self.move(qr.topLeft())
 
 
+class SplashScreen(QSplashScreen):
+    def __init__(self):
+        super(SplashScreen, self).__init__()
+        self.pxmap = QPixmap('Images/splash.png')
+        self.setPixmap(self.pxmap)
+        self.resize(500, 300)
+        self.versionlabel = QLabel(VERSION_NUMBER_STR)
+        self.versionlabel.setFont(QFont("Fantasy", 12))
+
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setGeometry(0, 289, 500, 11)
+        self.progressBar.setStyleSheet(StyleSheet)
+
+        self.center()
+        self.setWindowFlag(Qt.FramelessWindowHint)
+
+    def progress(self):
+        for i in range(100):
+            time.sleep(0.02)
+            self.progressBar.setValue(i)
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
 class MainWindow(QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
+        self.countup = 0
+        self.stock_pile_rotation = 0
+
 
         view = QGraphicsView()
         self.scene = QGraphicsScene()
-        self.scene.setSceneRect(QRectF(0, -20, *WINDOW_SIZE))  # -20 to show timer and score on load up
+        self.scene.setSceneRect(QRectF(-15, -20, *WINDOW_SIZE))  # -20 to show timer and score on load up
 
         felt = QBrush(QColor(15, 99, 66))
         self.scene.setBackgroundBrush(felt)
 
         view.setScene(self.scene)
+        view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Timer for the win animation only.
         self.timer = QTimer()
@@ -473,7 +569,7 @@ class MainWindow(QMainWindow):
         self.animation_event_cover = AnimationCover()
         self.scene.addItem(self.animation_event_cover)
 
-        menu = self.menuBar().addMenu("&Game")
+        menu = self.menuBar().addMenu("&File")
 
         deal_action = QAction(QIcon(os.path.join('Images', 'restartico.ico')), "Restart Game", self)
         deal_action.triggered.connect(self.restart_game)
@@ -538,8 +634,13 @@ class MainWindow(QMainWindow):
 
         helpmenu.addSeparator()
 
-        version_action = QAction("Version 0.6", self)
+        version_action = QAction(VERSION_NUMBER_STR, self)
         helpmenu.addAction(version_action)
+
+        # cheatmenu = self.menuBar().addMenu("&Cheat")
+        # win_cheat = QAction("Instant Win", self)
+        # win_cheat.triggered.connect(self.cheat_win_fn)
+        # cheatmenu.addAction(win_cheat)
 
         self.deck = []
         self.deal_n = 1  # Setting number of cards to deal each time initially
@@ -551,6 +652,9 @@ class MainWindow(QMainWindow):
                 self.deck.append(card)
                 self.scene.addItem(card)
                 card.signals.doubleclicked.connect(lambda card=card: self.auto_drop_card(card))
+                card.helpers.updated_score.connect(self.show_score)
+                card.helpers.updated_moves.connect(self.show_moves)
+
 
         self.setCentralWidget(view)
         self.setFixedSize(*WINDOW_SIZE)
@@ -568,14 +672,14 @@ class MainWindow(QMainWindow):
             self.works.append(stack)
 
         self.drops = []
-        # Set up the drop locations.
+        # Set up the foundation locations.
         for n in range(4):
             stack = DropStack()
             stack.setPos(OFFSET_X + CARD_SPACING_X * (3 + n), OFFSET_Y)
             stack.signals.complete.connect(self.check_win_condition)
-
             self.scene.addItem(stack)
             self.drops.append(stack)
+            stack.helpers.updated_score.connect(self.show_score)
 
         # Add the deal location.
         self.dealstack = DealStack()
@@ -589,41 +693,96 @@ class MainWindow(QMainWindow):
 
         self.shuffle_and_stack()
 
-        # # timer and score
-        # # self.curr_time = QTime(00, 00, 00)
-        # self.timer2 = QTimer()
-        # self.timer2.timeout.connect(lambda: self.get_timer())
-        # self.timer2.start(1000)
-        # # print(self.timer2)
-
         self.timerText = QGraphicsSimpleTextItem('00:00:00')
         self.timerText.setFont(QFont('Fantasy', 12))
         self.timerText.setBrush(QColor('white'))
         self.scene.addItem(self.timerText)
         self.timerText.setPos(830, 0)
-        self.countup = 0
         self.get_timer()
 
         self.scoreText = QGraphicsSimpleTextItem('Score:')
         self.scoreText.setFont(QFont('Fantasy', 12))
         self.scoreText.setBrush(QColor('white'))
         self.scene.addItem(self.scoreText)
-        self.scoreText.setPos(425, 0)
+        self.scoreText.setPos(325, 0)
 
         self.actualScore = QGraphicsSimpleTextItem("0")
         self.actualScore.setFont(QFont('Fantasy', 12))
         self.actualScore.setBrush(QColor('white'))
-        self.actualScore.setPos(475, 0)
+        self.actualScore.setPos(375, 0)
         self.scene.addItem(self.actualScore)
+
+        self.movesLabel = QGraphicsSimpleTextItem("Moves:")
+        self.movesLabel.setFont(QFont('Fabtasy', 12))
+        self.movesLabel.setBrush(QColor('white'))
+        self.movesLabel.setPos(523, 0)
+        self.scene.addItem(self.movesLabel)
+
+        self.actualMoves = QGraphicsSimpleTextItem("0")
+        self.actualMoves.setFont(QFont('Fabtasy', 12))
+        self.actualMoves.setBrush(QColor('white'))
+        self.actualMoves.setPos(575, 0)
+        self.scene.addItem(self.actualMoves)
+
+        self.stockpileRotationLabel = QGraphicsSimpleTextItem("Stockpile Rotated:")
+        self.stockpileRotationLabel.setFont(QFont('Fantasy', 12))
+        self.stockpileRotationLabel.setBrush(QColor('white'))
+        self.scene.addItem(self.stockpileRotationLabel)
+        self.stockpileRotationLabel.setPos(10, 0)
+
+        self.actualStockPileRotation = QGraphicsSimpleTextItem("0")
+        self.actualStockPileRotation.setFont(QFont('Fantasy', 12))
+        self.actualStockPileRotation.setBrush(QColor('white'))
+        self.actualStockPileRotation.setPos(140, 0)
+        self.scene.addItem(self.actualStockPileRotation)
 
         self.setWindowTitle("Group 5 Solitaire")
         self.setWindowIcon(QIcon('Images/frameiconico.ico'))
         self.show()
 
+
+    def cheat_win_fn(self):
+        # self.signals.complete.emit()
+        pass
+
+    def reset_stockpile_rotation(self):
+        self.stock_pile_rotation = 0
+        self.show_stockpile_rotation()
+
+    def stockpile_rotation(self):
+        self.stock_pile_rotation += 1
+        self.show_stockpile_rotation()
+
+    def show_stockpile_rotation(self):
+        self.actualStockPileRotation.setText(str(self.stock_pile_rotation))
+
+    def reset_show_score(self):
+        global foundation_score, move_score
+        foundation_score = 0
+        move_score = 0
+        self.actualScore.setText("0")
+        self.actualMoves.setText("0")
+
+    # slot
+    # @QtCore.pyqtSlot()
+    def show_score(self, total_score):
+        ts = total_score
+        # self.ts1 = score
+        self.actualScore.setText(str(ts))
+
+    def show_moves(self, moves):
+        ms = moves
+        self.actualMoves.setText(str(ms))
+
     def get_timer(self):
         my_qtimer = QTimer(self)
         my_qtimer.timeout.connect(self.timer_ticking)
         my_qtimer.start(1000)
+        self.updateTimerDisplay()
+
+    def reset_timer(self):
+        self.countup = 0
+        self.timer_ticking()
         self.updateTimerDisplay()
 
     def timer_ticking(self):
@@ -645,7 +804,10 @@ class MainWindow(QMainWindow):
                                      QMessageBox.Yes | QMessageBox.No)
 
         if reply == QMessageBox.Yes:
+            self.reset_timer()
+            self.reset_stockpile_rotation()
             self.shuffle_and_stack()
+            self.reset_show_score()
 
     def quit(self):
         self.close()
@@ -683,6 +845,7 @@ class MainWindow(QMainWindow):
         # Ensure removed from all other stacks here.
         self.deckstack.stack_cards(cards)
 
+    # Method for the stack of cards, top left
     def deal(self):
         if self.deckstack.cards:
             self.dealstack.spread_from = len(self.dealstack.cards)
@@ -694,6 +857,7 @@ class MainWindow(QMainWindow):
 
         elif self.deckstack.can_restack(self.rounds_n):
             self.deckstack.restack(self.dealstack)
+            self.stockpile_rotation()
             self.deckstack.update_stack_status(self.rounds_n)
 
     def auto_drop_card(self, card):
@@ -738,5 +902,12 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
+
+    splash = SplashScreen()
+    splash.show()
+    splash.progress()
+
     window = MainWindow()
+
+    splash.finish(window)
     app.exec_()
