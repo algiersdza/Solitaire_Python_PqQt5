@@ -1,3 +1,28 @@
+##########################
+Version 1.0
+##########################
+
+- User can now select background (felt) colour mid-game.
+- Application will now ask user on quitting application if they want to record their current stats.
+- If user enters no player name, it will be defaulted to root user.
+
+##########################
+Version 0.9
+##########################
+
+- Fixed bug with timer not resetting after recording a win.
+- Fixed bug with score being recorded on reset game function after a win, causing a duplicate entry.
+- Fixed bug with score being recorded on quitting the game function after a win, causing a duplicate entry.
+- Fixed bug with move not being registered with double-clicking feature.
+- Added possible exceptions to be displayed to user (JSON operations).
+
+##########################
+Version 0.8
+##########################
+
+- On start, Application will check if Scores.json exists, will create one if not in directory.
+- Application can now save and show user's previous scores.
+- Application on start can accept a player's name and felt/background colour.
 
 ##########################
 Version 0.7
@@ -5,12 +30,11 @@ Version 0.7
 
 - Added Splashscreen aka loading screen.
 - Stockpile rotation is now tracked for Vegas mode and scoring purposes.
-- Application will track users scoring and reflected on the GUI
-- Application will track users moves and reflected on the GUI
+- Application will track users scoring and reflected on the GUI.
+- Application will track users moves and reflected on the GUI.
 - Timer now resets on game restart and is tracked for scoring purposes.
 - Moves now resets on game restart.
 - Scoring now resets on game restart.
-
 
 ##########################
 Version 0.6
@@ -22,7 +46,7 @@ Version 0.6
 - Vegas Mode is added (3 stockpile rotations only).
 - Application can now restart and reshuffles a new set of cards.
 - Application now checks if win condition is satisfied and will display a win animation.
-- User can choose from the menu tab the amount of cards withdrawn from the stockpile
+- User can choose from the menu tab the amount of cards withdrawn from the stockpile.
 
 ##########################
 Version 0.5
@@ -39,5 +63,5 @@ Version 0.5
 Version 0.1
 ##########################
 
-- Created UI
-- Added UI properties and widgets
+- Created UI.
+- Added UI properties and widgets.

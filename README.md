@@ -3,7 +3,7 @@
 
 Solitaire developed on Python with PyQt5.
 
-#### Current Version: 0.7
+#### Current Version: 1.0
 
 Implementations:
 
@@ -18,8 +18,9 @@ Implementations:
 - [x] Vegas mode enabled (max 3 rounds of stockpile withdrawal)
 - [x] Cards from stockpile can be withdrawn by 1 card or 3 cards
 - [x] Timer displayed
+- [x] Moves counter
 - [x] Working Score System
-- [ ] Save current game scores and see previous game scores
+- [x] Save current game scores and see previous game scores
 
 
 Logic:
