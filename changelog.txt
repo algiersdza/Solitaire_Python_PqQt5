@@ -2,9 +2,13 @@
 Version 1.0
 ##########################
 
+- Updated cards to a bigger, visible size to the user.
 - User can now select background (felt) colour mid-game.
 - Application will now ask user on quitting application if they want to record their current stats.
 - If user enters no player name, it will be defaulted to root user.
+- User can pre-select the card back side colour before the game starts
+- Fixed bug with Deck card face down being selected on the outer rims of the card
+  but not shown/moved to face up deck pile
 
 ##########################
 Version 0.9

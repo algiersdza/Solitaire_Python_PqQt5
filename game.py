@@ -116,22 +116,30 @@ else:
         QMessageBox.information(self, "Exception occured! Exception is:", str(e))
         # print("Exception occured! Exception is:", str(e))
 
-WINDOW_SIZE = 900, 700
+WINDOW_SIZE = 1050, 700
 nnnn = 0 # background colour int for signals, 0 is green default colour
+vvvv = 0 # back card colour int for signals, 0 is green default colour
 felt = QBrush(QColor(15, 99, 66))
 USER_NAME = "root user"
 VERSION_NUMBER = 1.0
 VERSION_NUMBER_STR = "Version " + str(VERSION_NUMBER)
-CARD_DIMENSIONS = QSize(63, 96)
-CARD_RECT = QRect(0, 0, 63, 96)
-CARD_SPACING_X = 110
-CARD_BACK = QImage(os.path.join('Images', 'back-of-deck.png'))
 
-DEAL_RECT = QRect(30, 30, 110, 140)
+CARD_DIMENSIONS = QSize(1220, 183)
+# CARD_DIMENSIONS = QSize(63, 96)
+CARD_RECT = QRect(0, 0, 120, 183)
+# CARD_RECT = QRect(0, 0, 63, 96)
+CARD_SPACING_X = 140
+
+# CARD_BACK = QImage(os.path.join('Images', 'green_back.png'))
+# point of click to show stack card, if lower than size of card, you will have bugs
+# not moving stackcard to pile and showing instead
+
+DEAL_RECT = QRect(30, 30, 140, 200)
+# DEAL_RECT = QRect(30, 30, 110, 140)
 
 OFFSET_X = 50
 OFFSET_Y = 50
-WORK_STACK_Y = 200
+WORK_STACK_Y = 300
 
 SIDE_FACE = 0
 SIDE_BACK = 1
@@ -157,13 +165,13 @@ class Signals(QObject):
 class HelperMonka(QObject):
      updated_score = pyqtSignal(int)
      updated_moves = pyqtSignal(int)
+     # updated_back_card = pyqtSignal(int)
 
 
 class Card(QGraphicsPixmapItem):
 
     def __init__(self, value, suit, *args, **kwargs):
         super(Card, self).__init__(*args, **kwargs)
-
         self.signals = Signals()
         self.helpers = HelperMonka()
 
@@ -183,16 +191,40 @@ class Card(QGraphicsPixmapItem):
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
-        self.load_images()
+        self.load_images(vvvv)
 
-    def load_images(self):
+    # def send_me_text(self, n):
+    #     self.load_images(n)
+    #     print("Sending signal", str(n))
+
+    def load_images(self, i):
         self.face = QPixmap(
-            os.path.join('Images/cards', '%s%s.png' % (self.value, self.suit))
-        )
+                 os.path.join('Images/cards-alt-alt', '%s%s.png' % (self.value, self.suit))
+             )
+        if i == 0:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/green_back.png'))
+        elif i == 1:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/blue_back.png'))
+        elif i == 2:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/gray_back.png'))
+        elif i == 3:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/purple_back.png'))
+        elif i == 4:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/red_back.png'))
+        elif i == 5:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/yellow_back.png'))
+        else:
+            self.back = QPixmap(os.path.join('Images', 'BackCards/green_back.png'))
 
-        self.back = QPixmap(
-            os.path.join('Images', 'back-of-deck.png')
-        )
+
+    # def load_images(self):
+    #     self.face = QPixmap(
+    #         os.path.join('Images/cards-alt-alt', '%s%s.png' % (self.value, self.suit))
+    #     )
+    #
+    #     self.back = QPixmap(
+    #         os.path.join('Images', 'green_back.png')
+    #     )
 
     def turn_face_up(self):
         self.side = SIDE_FACE
@@ -334,7 +366,8 @@ class StackBase(QGraphicsRectItem):
 
 class DeckStack(StackBase):
     offset_x = -0.2
-    offset_y = -0.3
+    offset_y = -0.5
+    # offset_y = -0.3
 
     restack_counter = 0
 
@@ -424,7 +457,9 @@ class DealStack(StackBase):
 class WorkStack(StackBase):
     offset_x = 0
     offset_y = 15
+    # offset_y = 15
     offset_y_back = 5
+    # offset_y_back = 5
 
     def setup(self):
         self.setPen(QPen(Qt.NoPen))
@@ -550,6 +585,7 @@ class DealTrigger(QGraphicsRectItem):
     def __init__(self, *args, **kwargs):
         super(DealTrigger, self).__init__(*args, **kwargs)
         self.setRect(QRectF(DEAL_RECT))
+        # self.setZValue(0)
         self.setZValue(1000)
 
         pen = QPen(Qt.NoPen)
@@ -579,8 +615,8 @@ class HelpWindow(QDialog):
     def __init__(self, parent=None):  # parent=None
         super(HelpWindow, self).__init__()
         self.setWindowTitle("Rules")
-        self.setWindowIcon(QIcon('Images/info.ico'))
-        self.pixmap = QPixmap('Images/helpme.png')
+        self.setWindowIcon(QIcon('Images/Icons/info.ico'))
+        self.pixmap = QPixmap('Images/Icons/helpme.png')
         width = 800
         height = 167
         self.resize(width, height)
@@ -605,7 +641,7 @@ class SplashScreen(QSplashScreen):
 
     def __init__(self):
         super(SplashScreen, self).__init__()
-        self.pxmap = QPixmap('Images/splash.png')
+        self.pxmap = QPixmap('Images/Icons/splash.png')
         self.setPixmap(self.pxmap)
         self.resize(500, 300)
         self.versionlabel = QLabel(VERSION_NUMBER_STR)
@@ -673,35 +709,66 @@ class WorkerThread(QObject):
 # user preferences and what not
 class UserPreference(QDialog):
     change_colour_signal = pyqtSignal(int)
+    updated_back_card = pyqtSignal(int)
 
     def __init__(self):
         super(UserPreference, self).__init__()
-        self.setWindowIcon(QIcon("Images/frameiconico.ico"))
+        self.setWindowIcon(QIcon("Images/Icons/frameiconico.ico"))
         self.setWindowTitle("Preferences")
-        self.setFixedSize(300, 300)
+        self.icon1 = QPixmap('Images/Icons/spade-30-welcome.png')
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setFixedSize(200, 300)
         self.setStyleSheet("background: #161219;")
+        self.helpers = HelperMonka()
+
+        self.label_icon_1 = QLabel(self)
+        self.label_icon_1.setPixmap(self.icon1)
+        self.label_icon_1.move(37,6)
+        self.label_icon_1.resize(30, 30)
+
+        self.welcomeLabel = QLabel("Preferences", self)
+        self.welcomeLabel.setStyleSheet(StyleSheet_User_Pref)
+        self.welcomeLabel.move(70, 15)
+
+        self.label_icon_2 = QLabel(self)
+        self.label_icon_2.setPixmap(self.icon1)
+        self.label_icon_2.move(140,6)
+        self.label_icon_2.resize(30, 30)
 
         # show colour options
-
-        combolist = ["Green", "Rose Pink", "Eggplant", "Tan"]
+        combolist = ["Green", "Rose Pink", "Eggplant", "Tan", "Old Brick", "Dull Blue"]
         self.background_combo_box = QComboBox(self)
         self.background_combo_box.setStyleSheet(StyleSheet_User_Pref)
         self.background_combo_box.addItems(combolist)
-        self.background_combo_box.setGeometry(100, 30, 95, 40)
-        self.background_combo_box.currentIndexChanged.connect(self.selectionchange)
+        self.background_combo_box.setGeometry(55, 70, 95, 30)
+        self.background_combo_box.currentIndexChanged.connect(self.selection_change)
 
         self.choose_label = QLabel("Background Color", self)
         self.choose_label.setStyleSheet(StyleSheet_User_Pref)
-        self.choose_label.move(100, 10)
+        self.choose_label.move(55, 50)
 
         self.save_preferences_button = QPushButton(self)
-        self.save_preferences_button.setText("Save")
+        self.save_preferences_button.setText("Save And Close")
         self.save_preferences_button.setStyleSheet(StyleSheet_User_Pref)
-        self.save_preferences_button.move(263, 276)
+        self.save_preferences_button.move(59, 276)
         self.save_preferences_button.clicked.connect(self.closewindow)
 
+        self.choose_label_back_card = QLabel("Colour of Card Back (Disabled)", self)
+        self.choose_label_back_card.setStyleSheet(StyleSheet_User_Pref)
+        self.choose_label_back_card.move(25, 150)
 
+        cardBackList = ["Green", "Blue", "Grey", "Purple", "Red", "Yellow"]
+        self.back_colour_combo_box = QComboBox(self)
+        self.back_colour_combo_box.setStyleSheet(StyleSheet_User_Pref)
+        self.back_colour_combo_box.addItems(cardBackList)
+        self.back_colour_combo_box.setGeometry(55, 170, 95, 30)
+        self.back_colour_combo_box.setDisabled(True)  # needs more work and debugging
+        self.back_colour_combo_box.currentIndexChanged.connect(self.selection_change_card)
+
+
+        self.oldPos = self.pos()
         self.current_combo_index(nnnn)
+        self.current_combo_index_back(vvvv)
         self.center()
         self.show()
 
@@ -711,18 +778,36 @@ class UserPreference(QDialog):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def open_highscore(self):
-        pass # open window that reads the scores file
+    def selection_change_card(self, i):
+        pass
+        global vvvv
+        vvvv = i
+        n = i
+        self.current_combo_index_back(n)
+        # self.updated_back_card.emit(i)
 
-    def current_combo_index(self, i):
+    def current_combo_index(self, i):           #  For background color felt
         self.background_combo_box.setCurrentIndex(i)
 
-    def selectionchange(self, i):
+    def current_combo_index_back(self, i):      # for back card colour
+        self.back_colour_combo_box.setCurrentIndex(i)
+
+    def selection_change(self, i):
         global nnnn
         nnnn = i
         n = i
         self.current_combo_index(n)
-        self.change_colour_signal.emit(i)  # 0 green, 1 red, 2 eggplant, 3 tan
+        self.change_colour_signal.emit(i)  # 0 green, 1 red, 2 eggplant, 3 tan, 4 old brick, 5 dull blue
+
+    # mouse press events to move the interface around without the frame of interface
+    # visibile
+    def mousePressEvent(self, event):
+        self.oldPos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        delta = QPoint (event.globalPos() - self.oldPos)
+        self.move(self.x() + delta.x(), self.y() + delta.y())
+        self.oldPos = event.globalPos()
 
     def closewindow(self):
         self.close()
@@ -800,8 +885,7 @@ class User(QDialog):
         super(User, self).__init__()
         # self.setWindowTitle("Group 5 Solitaire")
         # self.setWindowIcon(QIcon('Images/frameiconico.ico'))
-        self.icon1 = QPixmap('Images/spade-30-welcome.png')
-        #self.icon2 = QPixmap('Images/frameiconico.ico')
+        self.icon1 = QPixmap('Images/Icons/spade-30-welcome.png')
         self.setStyleSheet("background: #161219;")
         self.setFixedSize(300,300)
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -832,14 +916,27 @@ class User(QDialog):
 
         self.whatBackground = QLabel("Background Colour", self)
         self.whatBackground.setStyleSheet(StyleSheet_User_Pref)
-        self.whatBackground.move(100, 120)
+        self.whatBackground.move(15, 130)
 
-        combolist = ["Green", "Rose Pink", "Eggplant", "Tan"]
+        combolist = ["Green", "Rose Pink", "Eggplant", "Tan", "Old Brick", "Dull Blue"]
         self.background_combo_box = QComboBox(self)
         self.background_combo_box.setStyleSheet(StyleSheet_User_Pref)
         self.background_combo_box.addItems(combolist)
-        self.background_combo_box.setGeometry(100, 150, 95, 40)
+        self.background_combo_box.setGeometry(25, 150, 95, 30)
         self.background_combo_box.currentIndexChanged.connect(self.selectionchange)
+
+        self.whatCardColour = QLabel("Card Back Colour", self)
+        self.whatCardColour.setStyleSheet(StyleSheet_User_Pref)
+        self.whatCardColour.move(180, 130)
+
+
+        cardBackList = ["Green", "Blue", "Grey", "Purple", "Red", "Yellow"]
+        self.back_colour_combo_box = QComboBox(self)
+        self.back_colour_combo_box.setStyleSheet(StyleSheet_User_Pref)
+        self.back_colour_combo_box.addItems(cardBackList)
+        self.back_colour_combo_box.setGeometry(180, 150, 95, 30)
+        self.back_colour_combo_box.currentIndexChanged.connect(self.selection_change_card)
+
 
 
         self.button = QPushButton(self)
@@ -868,6 +965,22 @@ class User(QDialog):
             # print("saveUserName: ", USER_NAME)
         # if no player name, it should show root user
 
+    def selection_change_card(self):
+        global vvvv
+        n = self.back_colour_combo_box.currentIndex()
+        if n == 0:
+            vvvv = n
+        elif n == 1:
+            vvvv = n
+        elif n == 2:
+            vvvv = n
+        elif n == 3:
+            vvvv = n
+        elif n == 4:
+            vvvv = n
+        else:
+            vvvv = 5
+
     def selectionchange(self):
         global felt, nnnn
         n = self.background_combo_box.currentIndex()
@@ -877,9 +990,14 @@ class User(QDialog):
             felt = QBrush(QColor(240, 170, 158))   # red
         elif n == 2:
             felt = QBrush(QColor(22, 18, 25))   # eggplant
+        elif n == 3:
+            felt = QBrush(QColor(166, 137, 98)) # tan??
+        elif n == 4:
+            felt = QBrush(QColor(145, 17, 38))    # old brick
         else:
-            felt = QBrush(QColor(166, 137, 98))     # tan??
+            felt = QBrush(QColor(78, 118, 167))     # dull blue
         nnnn = n
+
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
@@ -935,7 +1053,7 @@ class MainWindow(QMainWindow):
 
         menu = self.menuBar().addMenu("&File")
 
-        deal_action = QAction(QIcon(os.path.join('Images', 'restartico.ico')), "Restart Game", self)
+        deal_action = QAction(QIcon(os.path.join('Images', 'Icons/restartico.ico')), "Restart Game", self)
         deal_action.triggered.connect(self.restart_game)
         menu.addAction(deal_action)
 
@@ -979,7 +1097,7 @@ class MainWindow(QMainWindow):
 
         optionmenu.addSeparator()
 
-        rounds3_action = QAction(QIcon(os.path.join('Images', 'vegasico.ico')), "Vegas Mode", self)
+        rounds3_action = QAction(QIcon(os.path.join('Images', 'Icons/vegasico.ico')), "Vegas Mode", self)
         # rounds3_action = QAction("Vegas Mode", self)
         rounds3_action.setCheckable(True)
         # rounds3_action.setChecked(True)
@@ -1005,7 +1123,7 @@ class MainWindow(QMainWindow):
 
 
         helpmenu = self.menuBar().addMenu("&About")
-        help_action = QAction(QIcon(os.path.join('Images', 'info.ico')), "Rules", self)
+        help_action = QAction(QIcon(os.path.join('Images', 'Icons/info.ico')), "Rules", self)
         help_action.triggered.connect(self.show_help)
         helpmenu.addAction(help_action)
 
@@ -1069,56 +1187,60 @@ class MainWindow(QMainWindow):
         self.timerText.setFont(QFont('Fantasy', 12))
         self.timerText.setBrush(QColor('white'))
         self.scene.addItem(self.timerText)
-        self.timerText.setPos(830, 0)
+        self.timerText.setPos(980, 0)
         self.get_timer()
 
         self.scoreText = QGraphicsSimpleTextItem('Score:')
         self.scoreText.setFont(QFont('Fantasy', 12))
         self.scoreText.setBrush(QColor('white'))
         self.scene.addItem(self.scoreText)
-        self.scoreText.setPos(325, 0)
+        self.scoreText.setPos(700, 0)
 
-        self.actualScore = QGraphicsSimpleTextItem("0")
+        self.actualScore = QGraphicsSimpleTextItem("1000")
         self.actualScore.setFont(QFont('Fantasy', 12))
         self.actualScore.setBrush(QColor('white'))
-        self.actualScore.setPos(375, 0)
+        self.actualScore.setPos(750, 0)
         self.scene.addItem(self.actualScore)
 
         self.movesLabel = QGraphicsSimpleTextItem("Moves:")
         self.movesLabel.setFont(QFont('Fabtasy', 12))
         self.movesLabel.setBrush(QColor('white'))
-        self.movesLabel.setPos(523, 0)
+        self.movesLabel.setPos(825, 0)
         self.scene.addItem(self.movesLabel)
 
-        self.actualMoves = QGraphicsSimpleTextItem("0")
+        self.actualMoves = QGraphicsSimpleTextItem("300")
         self.actualMoves.setFont(QFont('Fabtasy', 12))
         self.actualMoves.setBrush(QColor('white'))
-        self.actualMoves.setPos(575, 0)
+        self.actualMoves.setPos(877, 0)
         self.scene.addItem(self.actualMoves)
 
         self.stockpileRotationLabel = QGraphicsSimpleTextItem("Stockpile Rotated:")
         self.stockpileRotationLabel.setFont(QFont('Fantasy', 12))
         self.stockpileRotationLabel.setBrush(QColor('white'))
         self.scene.addItem(self.stockpileRotationLabel)
-        self.stockpileRotationLabel.setPos(10, 0)
+        self.stockpileRotationLabel.setPos(50, 0)
 
         self.actualStockPileRotation = QGraphicsSimpleTextItem("0")
         self.actualStockPileRotation.setFont(QFont('Fantasy', 12))
         self.actualStockPileRotation.setBrush(QColor('white'))
-        self.actualStockPileRotation.setPos(140, 0)
+        self.actualStockPileRotation.setPos(180, 0)
         self.scene.addItem(self.actualStockPileRotation)
 
         self.setWindowTitle("Group 5 Solitaire")
-        self.setWindowIcon(QIcon('Images/frameiconico.ico'))
+        self.setWindowIcon(QIcon('Images/Icons/frameiconico.ico'))
         self.show()
 
 
     def open_user_prefs(self):
         self.userpref = UserPreference()
         self.userpref.change_colour_signal.connect(self.change_background)
+        # self.userpref.updated_back_card.connect(self.change_card_back)
 
     def open_highscores(self):
         self.hh = UserHighscores()
+
+    # def change_card_back(self, n):
+    #     card.send_me_text(n)
 
     def change_background(self, n):
         if n == 0:
@@ -1127,8 +1249,12 @@ class MainWindow(QMainWindow):
             self.scene.setBackgroundBrush(QBrush(QColor(240, 170, 158)))    # red
         elif n == 2:
             self.scene.setBackgroundBrush(QBrush(QColor(22, 18, 25)))   # eggplant
-        else:
+        elif n == 3:
             self.scene.setBackgroundBrush(QBrush(QColor(166, 137, 98)))     # tan??
+        elif n == 4:
+            self.scene.setBackgroundBrush(QBrush(QColor(145, 17, 38)))
+        else:
+            self.scene.setBackgroundBrush(QBrush(QColor(78, 118, 167)))
 
     def reset_stockpile_rotation(self):
         self.stock_pile_rotation = 0
@@ -1153,7 +1279,6 @@ class MainWindow(QMainWindow):
     # @QtCore.pyqtSlot()
     def show_score(self, total_score):
         ts = total_score
-        # self.ts1 = score
         self.actualScore.setText(str(ts))
 
     def show_moves(self, moves):
@@ -1352,9 +1477,7 @@ if __name__ == '__main__':
     splash.show()
     splash.progress()
 
-    #window = MainWindow()
     user = User()
 
-    # splash.finish(window)
     splash.finish(user)
     app.exec_()
