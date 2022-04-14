@@ -4,6 +4,7 @@
 Solitaire developed on Python with PyQt5.
 
 #### Current Version: 1.0
+#### Latest Patch: 1.0.1
 
 Implementations:
 
@@ -29,7 +30,7 @@ Logic:
 - [x] A full deck of cards that can be shuffled must be implemented.
 - [x] As cards are sorted into their piles, they must be subtracted from the full deck of cards.
 - [x] Tableau cards can only be stacked in alternating colors
-- [ ] Spare tableau spots can only be filled with kings
+- [x] Spare tableau spots can only be filled with kings
 - [x] Foundations can only be filled starting with an ace
 - [x] Foundations can only be stacked by matching suits
 - [x] Foundations can only be stacked in ascending order.

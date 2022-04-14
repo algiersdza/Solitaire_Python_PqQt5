@@ -1,15 +1,14 @@
+import json
 import os
 import random
 import sys
 import time
-import json
+from heapq import nlargest
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
 
-# rgb(200, 255, 255)
 StyleSheet = """
 QProgressBar {
                 background-color: grey;
@@ -81,6 +80,7 @@ QTextEdit{
 }            
 """
 
+
 # save files and read files will go here
 # function to open a new window to showcase previous games (read from)
 # function to save and write new lines of games with score and game time, plus system time (write)
@@ -92,6 +92,7 @@ QTextEdit{
 def json_exists(nameOfFile):
     return os.path.exists(nameOfFile)
 
+
 if json_exists('Scores.json'):
     print("Scores.json exists")
     pass
@@ -99,10 +100,10 @@ else:
     print("Scores.txt does not exist")
     data = {
         "scores:": [{
-            'user': "root user",
+            'user': "Player",
             'Time Of Completion': "00:00",
-            'Moves Taken': 0,
-            'Score': 1000,
+            'Moves Taken': "0",
+            'Score': 0,
             'Played At': str(QDateTime.currentDateTime().toString(Qt.DefaultLocaleShortDate))
         }]
     }
@@ -113,21 +114,23 @@ else:
             json.dump(data, initialWrite, indent=4)
         print("Created initial file with initial data")
     except Exception as e:
-        QMessageBox.information(self, "Exception occured! Exception is:", str(e))
-        # print("Exception occured! Exception is:", str(e))
+        # QMessageBox.information(self, "Exception occured! Exception is:", str(e))
+        print("Exception occured! Exception is:", str(e))
 
-WINDOW_SIZE = 1050, 700
-nnnn = 0 # background colour int for signals, 0 is green default colour
-vvvv = 0 # back card colour int for signals, 0 is green default colour
+# WINDOW_SIZE = 1152, 864
+WINDOW_SIZE = 1050, 864
+LABEL_OFFSET_SCORE = 5
+FONT_SIZE = 15
+
+nnnn = 0  # background colour int for signals, 0 is green default colour
+vvvv = 0  # back card colour int for signals, 0 is green default colour
 felt = QBrush(QColor(15, 99, 66))
-USER_NAME = "root user"
+USER_NAME = "Player"
 VERSION_NUMBER = 1.0
 VERSION_NUMBER_STR = "Version " + str(VERSION_NUMBER)
 
-CARD_DIMENSIONS = QSize(1220, 183)
-# CARD_DIMENSIONS = QSize(63, 96)
+CARD_DIMENSIONS = QSize(120, 183)
 CARD_RECT = QRect(0, 0, 120, 183)
-# CARD_RECT = QRect(0, 0, 63, 96)
 CARD_SPACING_X = 140
 
 # CARD_BACK = QImage(os.path.join('Images', 'green_back.png'))
@@ -137,14 +140,14 @@ CARD_SPACING_X = 140
 DEAL_RECT = QRect(30, 30, 140, 200)
 # DEAL_RECT = QRect(30, 30, 110, 140)
 
-OFFSET_X = 50
-OFFSET_Y = 50
-WORK_STACK_Y = 300
+OFFSET_X = 45
+OFFSET_Y = 40
+WORK_STACK_Y = 250
 
 SIDE_FACE = 0
 SIDE_BACK = 1
 
-BOUNCE_ENERGY = 0.8
+BOUNCE_ENERGY = 0.5
 
 # We store cards as numbers 1-13, since we only need
 # to know their order for solitaire.
@@ -156,6 +159,7 @@ TOTAL_SCORE = 0
 MOVE_SCORE = 0
 WON_CONDITION = False
 
+
 class Signals(QObject):
     complete = pyqtSignal()
     clicked = pyqtSignal()
@@ -163,9 +167,9 @@ class Signals(QObject):
 
 
 class HelperMonka(QObject):
-     updated_score = pyqtSignal(int)
-     updated_moves = pyqtSignal(int)
-     # updated_back_card = pyqtSignal(int)
+    updated_score = pyqtSignal(int)
+    updated_moves = pyqtSignal(int)
+    # updated_back_card = pyqtSignal(int)
 
 
 class Card(QGraphicsPixmapItem):
@@ -199,8 +203,8 @@ class Card(QGraphicsPixmapItem):
 
     def load_images(self, i):
         self.face = QPixmap(
-                 os.path.join('Images/cards-alt-alt', '%s%s.png' % (self.value, self.suit))
-             )
+            os.path.join('Images/cards-alt-alt', '%s%s.png' % (self.value, self.suit))
+        )
         if i == 0:
             self.back = QPixmap(os.path.join('Images', 'BackCards/green_back.png'))
         elif i == 1:
@@ -215,7 +219,6 @@ class Card(QGraphicsPixmapItem):
             self.back = QPixmap(os.path.join('Images', 'BackCards/yellow_back.png'))
         else:
             self.back = QPixmap(os.path.join('Images', 'BackCards/green_back.png'))
-
 
     # def load_images(self):
     #     self.face = QPixmap(
@@ -287,7 +290,6 @@ class Card(QGraphicsPixmapItem):
         TOTAL_SCORE = FOUNDATION_SCORE + MOVE_SCORE
         self.helpers.updated_score.emit(TOTAL_SCORE)
         self.helpers.updated_moves.emit(MOVES)
-
 
     def mouseDoubleClickEvent(self, e):
         if self.stack.is_free_card(self):
@@ -422,6 +424,7 @@ class DeckStack(StackBase):
 
 class DealStack(StackBase):
     offset_x = 20
+    # offset_y = 220
     offset_y = 0
 
     spread_from = 0
@@ -454,11 +457,13 @@ class DealStack(StackBase):
                 offset_x = offset_x + self.offset_x
 
 
+# tableau
 class WorkStack(StackBase):
     offset_x = 0
-    offset_y = 15
+    offset_y = 30  # card spacing y axis
     # offset_y = 15
-    offset_y_back = 5
+    offset_y_back = 15  # card back spacing y axis
+
     # offset_y_back = 5
 
     def setup(self):
@@ -467,6 +472,7 @@ class WorkStack(StackBase):
         color.setAlpha(50)
         brush = QBrush(color)
         self.setBrush(brush)
+        self.helpers = HelperMonka()
 
     def activate(self):
         # Raise z-value of this stack so children float above all other cards.
@@ -476,11 +482,16 @@ class WorkStack(StackBase):
         self.setZValue(-1)
 
     def is_valid_drop(self, card):
-        if not self.cards:
+
+        if not self.cards and card.value != 13:
+            return False
+
+        if not self.cards and card.value == 13:
+            global MOVE_SCORE
+            MOVE_SCORE -= 3
             return True
 
-        if (card.color != self.cards[-1].color and
-                card.value == self.cards[-1].value - 1):
+        if (card.color != self.cards[-1].color and card.value == self.cards[-1].value - 1):
             return True
 
         return False
@@ -562,7 +573,6 @@ class DropStack(StackBase):
         TOTAL_SCORE = FOUNDATION_SCORE + MOVE_SCORE
         self.helpers.updated_score.emit(TOTAL_SCORE)
 
-
     def add_card(self, card, update=True):
         super(DropStack, self).add_card(card, update=update)
         self.suit = card.suit
@@ -612,22 +622,82 @@ class AnimationCover(QGraphicsRectItem):
 
 # show rules
 class HelpWindow(QDialog):
+    which_page_are_we_on = 1
+
     def __init__(self, parent=None):  # parent=None
         super(HelpWindow, self).__init__()
-        self.setWindowTitle("Rules")
+        self.setWindowTitle("Tutorial and Rules")
         self.setWindowIcon(QIcon('Images/Icons/info.ico'))
-        self.pixmap = QPixmap('Images/Icons/helpme.png')
-        width = 800
-        height = 167
-        self.resize(width, height)
-        self.center()
-        # self.setGeometry(100, 100, width, height)
+        self.setStyleSheet("background: #161219;")
+        self.pixmap1 = QPixmap('Images/HelpResources/first-help-window.png')
+        width = 1000
+        height = 800
         self.label = QLabel(self)
-        self.label.setPixmap(self.pixmap)
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        self.setLayout(layout)
+        self.label.resize(900, 750)
+        self.label.move(10, 10)
+        # initial page
+        self.label.setPixmap(self.pixmap1)
+
+        self.next_to = QPushButton(self)
+        self.next_to.setText("Next")
+        self.next_to.setStyleSheet(StyleSheet_User_Pref)
+        self.next_to.move(width - 120, height - 30)
+        self.next_to.resize(100, 30)
+        self.next_to.clicked.connect(self.init_next)
+
+        self.back_to = QPushButton(self)
+        self.back_to.setText("Back")
+        self.back_to.setStyleSheet(StyleSheet_User_Pref)
+        self.back_to.move(20, height - 30)
+        self.back_to.resize(100, 30)
+        self.back_to.clicked.connect(self.init_prev)
+        self.back_to.setHidden(True)
+
+        self.setFixedSize(width, height)
+        self.center()
         self.show()
+
+    # Next button
+    def init_next(self):
+        if self.which_page_are_we_on == 1:
+            self.which_page_are_we_on += 1
+            self.pixmap2 = QPixmap("Images/HelpResources/second-help-window.png")
+            self.label.setPixmap(self.pixmap2)
+            self.back_to.setHidden(False)
+        elif self.which_page_are_we_on == 2:
+            self.which_page_are_we_on += 1
+            self.pixmap3 = QPixmap("Images/HelpResources/third-help-window.png")
+            self.label.setPixmap(self.pixmap3)
+        elif self.which_page_are_we_on == 3:
+            self.which_page_are_we_on += 1
+            self.pixmap4 = QPixmap("Images/HelpResources/fourth-help-window.png")
+            self.label.setPixmap(self.pixmap4)
+        elif self.which_page_are_we_on == 4:
+            self.which_page_are_we_on += 1
+            self.pixmap5 = QPixmap("Images/HelpResources/fifth-help-window.png")
+            self.label.setPixmap(self.pixmap5)
+            self.next_to.setHidden(True)
+
+    # Back button
+    def init_prev(self):
+        if self.which_page_are_we_on == 2:
+            self.which_page_are_we_on -= 1
+            self.pixmap1 = QPixmap("Images/HelpResources/first-help-window.png")
+            self.label.setPixmap(self.pixmap1)
+            self.back_to.setHidden(True)
+        elif self.which_page_are_we_on == 3:
+            self.which_page_are_we_on -= 1
+            self.pixmap2 = QPixmap("Images/HelpResources/second-help-window.png")
+            self.label.setPixmap(self.pixmap2)
+        elif self.which_page_are_we_on == 4:
+            self.which_page_are_we_on -= 1
+            self.pixmap3 = QPixmap("Images/HelpResources/third-help-window.png")
+            self.label.setPixmap(self.pixmap3)
+        elif self.which_page_are_we_on == 5:
+            self.which_page_are_we_on -= 1
+            self.pixmap4 = QPixmap("Images/HelpResources/fourth-help-window.png")
+            self.label.setPixmap(self.pixmap4)
+            self.next_to.setHidden(False)
 
     def center(self):
         qr = self.frameGeometry()
@@ -689,9 +759,8 @@ class SplashScreen(QSplashScreen):
     def mousePressEvent(self, event):
         self.oldPos = event.globalPos()
 
-
     def mouseMoveEvent(self, event):
-        delta = QPoint (event.globalPos() - self.oldPos)
+        delta = QPoint(event.globalPos() - self.oldPos)
         self.move(self.x() + delta.x(), self.y() + delta.y())
         self.oldPos = event.globalPos()
 
@@ -710,8 +779,10 @@ class WorkerThread(QObject):
 class UserPreference(QDialog):
     change_colour_signal = pyqtSignal(int)
     updated_back_card = pyqtSignal(int)
+    change_name_signal = pyqtSignal(str)
 
     def __init__(self):
+        global USER_NAME
         super(UserPreference, self).__init__()
         self.setWindowIcon(QIcon("Images/Icons/frameiconico.ico"))
         self.setWindowTitle("Preferences")
@@ -723,16 +794,17 @@ class UserPreference(QDialog):
 
         self.label_icon_1 = QLabel(self)
         self.label_icon_1.setPixmap(self.icon1)
-        self.label_icon_1.move(37,6)
+        self.label_icon_1.move(37, 6)
         self.label_icon_1.resize(30, 30)
 
         self.welcomeLabel = QLabel("Preferences", self)
         self.welcomeLabel.setStyleSheet(StyleSheet_User_Pref)
+        self.welcomeLabel.adjustSize()
         self.welcomeLabel.move(70, 15)
 
         self.label_icon_2 = QLabel(self)
         self.label_icon_2.setPixmap(self.icon1)
-        self.label_icon_2.move(140,6)
+        self.label_icon_2.move(140, 6)
         self.label_icon_2.resize(30, 30)
 
         # show colour options
@@ -740,12 +812,13 @@ class UserPreference(QDialog):
         self.background_combo_box = QComboBox(self)
         self.background_combo_box.setStyleSheet(StyleSheet_User_Pref)
         self.background_combo_box.addItems(combolist)
-        self.background_combo_box.setGeometry(55, 70, 95, 30)
+        self.background_combo_box.setGeometry(55, 140, 95, 30)
         self.background_combo_box.currentIndexChanged.connect(self.selection_change)
 
         self.choose_label = QLabel("Background Color", self)
         self.choose_label.setStyleSheet(StyleSheet_User_Pref)
-        self.choose_label.move(55, 50)
+        self.choose_label.adjustSize()
+        self.choose_label.move(55, 120)
 
         self.save_preferences_button = QPushButton(self)
         self.save_preferences_button.setText("Save And Close")
@@ -755,18 +828,29 @@ class UserPreference(QDialog):
 
         self.choose_label_back_card = QLabel("Colour of Card Back (Disabled)", self)
         self.choose_label_back_card.setStyleSheet(StyleSheet_User_Pref)
-        self.choose_label_back_card.move(25, 150)
+        self.choose_label_back_card.adjustSize()
+        self.choose_label_back_card.move(25, 200)
 
         cardBackList = ["Green", "Blue", "Grey", "Purple", "Red", "Yellow"]
         self.back_colour_combo_box = QComboBox(self)
         self.back_colour_combo_box.setStyleSheet(StyleSheet_User_Pref)
         self.back_colour_combo_box.addItems(cardBackList)
-        self.back_colour_combo_box.setGeometry(55, 170, 95, 30)
+        self.back_colour_combo_box.setGeometry(55, 220, 95, 30)
         self.back_colour_combo_box.setDisabled(True)  # needs more work and debugging
         self.back_colour_combo_box.currentIndexChanged.connect(self.selection_change_card)
 
+        self.user_name_label = QLabel("Player Name", self)
+        self.user_name_label.setStyleSheet(StyleSheet_User_Pref)
+        self.user_name_label.adjustSize()
+        self.user_name_label.move(69, 55)
 
-        self.oldPos = self.pos()
+        self.user_name_edit = QLineEdit(self)
+        self.user_name_edit.setStyleSheet(StyleSheet_User_Pref)
+        self.user_name_edit.resize(150, 25)
+        self.user_name_edit.move(30, 75)
+        self.user_name_edit.setPlaceholderText(USER_NAME)
+
+        # self.oldPos = self.pos()
         self.current_combo_index(nnnn)
         self.current_combo_index_back(vvvv)
         self.center()
@@ -786,10 +870,10 @@ class UserPreference(QDialog):
         self.current_combo_index_back(n)
         # self.updated_back_card.emit(i)
 
-    def current_combo_index(self, i):           #  For background color felt
+    def current_combo_index(self, i):  # For background color felt
         self.background_combo_box.setCurrentIndex(i)
 
-    def current_combo_index_back(self, i):      # for back card colour
+    def current_combo_index_back(self, i):  # for back card colour
         self.back_colour_combo_box.setCurrentIndex(i)
 
     def selection_change(self, i):
@@ -801,15 +885,23 @@ class UserPreference(QDialog):
 
     # mouse press events to move the interface around without the frame of interface
     # visibile
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
+    # def mousePressEvent(self, event):
+    #     self.oldPos = event.globalPos()
+    #     # pass
+    # def mouseMoveEvent(self, event):
+    #     delta = QPoint (event.globalPos() - self.oldPos)
+    #     self.move(self.x() + delta.x(), self.y() + delta.y())
+    #     self.oldPos = event.globalPos()
 
-    def mouseMoveEvent(self, event):
-        delta = QPoint (event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
+    def change_name(self):
+        global USER_NAME
+        name = self.user_name_edit.text()
+        self.change_name_signal.emit(name)
+        USER_NAME = name
 
     def closewindow(self):
+        if self.user_name_edit.text():
+            self.change_name()
         self.close()
 
 
@@ -819,45 +911,210 @@ class UserHighscores(QDialog):
     def __init__(self):
         super(UserHighscores, self).__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setFixedSize(550, 400)
+        x_offset = 5
+        y_offset = 10
+        highscore_window_size = 600, 700
+        self.setFixedSize(*highscore_window_size)
         self.setStyleSheet("background: #161219;")
 
-        self.scoreboard_text_label = QLabel("Group Five Solitaire ScoreBoard", self)
-        self.scoreboard_text_label.move(200, 8)
+        self.scoreboard_text_label = QLabel(self)
+        self.scoreboard_pix = QPixmap("Images/Icons/highscore.png")
+        self.scoreboard_text_label.setPixmap(self.scoreboard_pix)
+        self.scoreboard_text_label.move(highscore_window_size[0] / 2 - self.scoreboard_pix.width() / 2, 0)
         self.scoreboard_text_label.setStyleSheet(StyleSheet_User_Pref)
 
+        self.first_label = QLabel(self)
+        self.first_label_pix = QPixmap("Images/Icons/first.png")
+        self.first_label.setPixmap(self.first_label_pix)
+        self.first_label.move((highscore_window_size[0] / 2) - self.first_label_pix.width() / 2, 110)
 
-        self.highscore_text = QTextEdit(self)
-        self.highscore_text.move(10,25)
-        self.highscore_text.resize(530,340)
-        self.highscore_text.setDisabled(True)
-        self.setStyleSheet(StyleSheet_User_Pref)
+        self.first_player_name = QLabel("Player:", self)
+        self.first_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.first_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.first_player_name.move(250, 200)
+
+        self.actual_first_player_name = QLabel("N/A", self)
+        self.actual_first_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_first_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_first_player_name.move(300, 200)
+
+        self.first_score_is = QLabel("Score:", self)
+        self.first_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.first_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.first_score_is.move(250, 230)
+
+        self.actual_first_score_is = QLabel("N/A", self)
+        self.actual_first_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_first_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_first_score_is.move(300, 230)
+
+        self.first_time_is = QLabel("Time Of Completion:", self)
+        self.first_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.first_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.first_time_is.move(250, 260)
+
+        self.actual_first_time_is = QLabel("N/A", self)
+        self.actual_first_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_first_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_first_time_is.move(380, 260)
+
+        self.first_moves_is = QLabel("Moves Taken:", self)
+        self.first_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.first_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.first_moves_is.move(250, 290)
+
+        self.actual_first_moves_is = QLabel("N/A", self)
+        self.actual_first_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_first_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_first_moves_is.move(350, 290)
+
+        # @second
+        self.second_label = QLabel(self)
+        self.second_label_pix = QPixmap("Images/Icons/second.png")
+        self.second_label.setPixmap(self.second_label_pix)
+        self.second_label.move(highscore_window_size[0] * 0.15 - self.second_label_pix.width() / 2, 370)
+
+        self.second_player_name = QLabel("Player:", self)
+        self.second_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.second_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.second_player_name.move(170, 370)
+
+        self.actual_second_player_name = QLabel("N/A", self)
+        self.actual_second_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_second_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_second_player_name.move(220, 370)
+
+        self.second_score_is = QLabel("Score:", self)
+        self.second_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.second_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.second_score_is.move(170, 400)
+
+        self.actual_second_score_is = QLabel("N/A", self)
+        self.actual_second_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_second_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_second_score_is.move(220, 400)
+
+        self.second_time_is = QLabel("Time Of Completion:", self)
+        self.second_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.second_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.second_time_is.move(170, 430)
+
+        self.actual_second_time_is = QLabel("N/A", self)
+        self.actual_second_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_second_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_second_time_is.move(300, 430)
+
+        self.second_moves_is = QLabel("Moves Taken:", self)
+        self.second_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.second_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.second_moves_is.move(170, 460)
+
+        self.actual_second_moves_is = QLabel("N/A", self)
+        self.actual_second_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_second_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_second_moves_is.move(270, 460)
+
+        # @third
+        self.third_label = QLabel(self)
+        self.third_label_pix = QPixmap("Images/Icons/third.png")
+        self.third_label.setPixmap(self.third_label_pix)
+        self.third_label.move(highscore_window_size[0] * 0.15 - self.third_label_pix.width() / 2, 530)
+
+        self.third_player_name = QLabel("Player:", self)
+        self.third_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.third_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.third_player_name.move(170, 530)
+
+        self.actual_third_player_name = QLabel("N/A", self)
+        self.actual_third_player_name.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_third_player_name.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_third_player_name.move(220, 530)
+
+        self.third_score_is = QLabel("Score:", self)
+        self.third_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.third_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.third_score_is.move(170, 560)
+
+        self.actual_third_score_is = QLabel("N/A", self)
+        self.actual_third_score_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_third_score_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_third_score_is.move(220, 560)
+
+        self.third_time_is = QLabel("Time Of Completion:", self)
+        self.third_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.third_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.third_time_is.move(170, 590)
+
+        self.actual_third_time_is = QLabel("N/A", self)
+        self.actual_third_time_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_third_time_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_third_time_is.move(300, 590)
+
+        self.third_moves_is = QLabel("Moves Taken:", self)
+        self.third_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.third_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.third_moves_is.move(170, 620)
+
+        self.actual_third_moves_is = QLabel("N/A", self)
+        self.actual_third_moves_is.setStyleSheet(StyleSheet_User_Pref)
+        self.actual_third_moves_is.setFont(QFont("Fantasy", FONT_SIZE))
+        self.actual_third_moves_is.move(270, 620)
+
+        # self.highscore_text = QTextEdit(self)
+        # self.highscore_text.move(10,25)
+        # self.highscore_text.resize(530,340)
+        # self.highscore_text.setDisabled(True)
+        # self.setStyleSheet(StyleSheet_User_Pref)
 
         self.close_button = QPushButton(self)
         self.close_button.setStyleSheet(StyleSheet_User_Pref)
         self.close_button.setText("Close")
         self.close_button.clicked.connect(self.close_window)
-        self.close_button.move(510, 375)
-
+        self.close_button.move((self.size().width() / 2) - 50, self.size().height() - 50)
+        self.close_button.resize(100, 30)
 
         self.get_score_from_json()
         self.center()
-        self.oldPos = self.pos()
+        # self.oldPos = self.pos()
         self.show()
 
     def get_score_from_json(self):
-        data_from_json = []
         with open("Scores.json", 'r') as readfile:
             users_highscores = json.load(readfile)
-            # print(users_highscores)
-        for row in users_highscores["scores:"]:
-            userText = row['user']
-            timeText = row['Time Of Completion']
-            moveText = row['Moves Taken']
-            scoreText = row['Score']
-            playText = row['Played At']
-            self.highscore_text.append(f"Player: {userText}, Time Took: {str(timeText)}, Moves Taken: {str(moveText)}, Score: {str(scoreText)}, Played At: {str(playText)}\n")
+            # print(nlargest(3, users_highscores["scores:"], key=lambda item: item["Score"]))
+            top_three_list = (nlargest(3, users_highscores["scores:"], key=lambda item: item["Score"]))
+            if len(top_three_list) == 1:  # if scores.json has only 1 records
+                self.actual_first_player_name.setText(top_three_list[0]["user"])
+                self.actual_first_score_is.setText(str(top_three_list[0]["Score"]))
+                self.actual_first_time_is.setText(top_three_list[0]["Time Of Completion"])
+                self.actual_first_moves_is.setText(top_three_list[0]["Moves Taken"])
 
+            elif len(top_three_list) == 2:  # if scores.json has only 2 records
+                self.actual_first_player_name.setText(top_three_list[0]["user"])
+                self.actual_first_score_is.setText(str(top_three_list[0]["Score"]))
+                self.actual_first_time_is.setText(top_three_list[0]["Time Of Completion"])
+                self.actual_first_moves_is.setText(top_three_list[0]["Moves Taken"])
+
+                self.actual_second_player_name.setText(top_three_list[1]["user"])
+                self.actual_second_score_is.setText(str(top_three_list[1]["Score"]))
+                self.actual_second_time_is.setText(top_three_list[1]["Time Of Completion"])
+                self.actual_second_moves_is.setText(top_three_list[1]["Moves Taken"])
+
+            elif len(top_three_list) == 3:  # if scores.json has more than 2 records
+                self.actual_first_player_name.setText(top_three_list[0]["user"])
+                self.actual_first_score_is.setText(str(top_three_list[0]["Score"]))
+                self.actual_first_time_is.setText(top_three_list[0]["Time Of Completion"])
+                self.actual_first_moves_is.setText(top_three_list[0]["Moves Taken"])
+
+                self.actual_second_player_name.setText(top_three_list[1]["user"])
+                self.actual_second_score_is.setText(str(top_three_list[1]["Score"]))
+                self.actual_second_time_is.setText(top_three_list[1]["Time Of Completion"])
+                self.actual_second_moves_is.setText(top_three_list[1]["Moves Taken"])
+
+                self.actual_third_player_name.setText(top_three_list[2]["user"])
+                self.actual_third_score_is.setText(str(top_three_list[2]["Score"]))
+                self.actual_third_time_is.setText(top_three_list[2]["Time Of Completion"])
+                self.actual_third_moves_is.setText(top_three_list[2]["Moves Taken"])
 
     def close_window(self):
         self.close()
@@ -870,13 +1127,13 @@ class UserHighscores(QDialog):
 
     # mouse press events to move the interface around without the frame of interface
     # visibile
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
-
-    def mouseMoveEvent(self, event):
-        delta = QPoint (event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
+    # def mousePressEvent(self, event):
+    #     self.oldPos = event.globalPos()
+    #
+    # def mouseMoveEvent(self, event):
+    #     delta = QPoint (event.globalPos() - self.oldPos)
+    #     self.move(self.x() + delta.x(), self.y() + delta.y())
+    #     self.oldPos = event.globalPos()
 
 
 class User(QDialog):
@@ -887,17 +1144,17 @@ class User(QDialog):
         # self.setWindowIcon(QIcon('Images/frameiconico.ico'))
         self.icon1 = QPixmap('Images/Icons/spade-30-welcome.png')
         self.setStyleSheet("background: #161219;")
-        self.setFixedSize(300,300)
+        self.setFixedSize(300, 300)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
         self.label_icon_1 = QLabel(self)
         self.label_icon_1.setPixmap(self.icon1)
-        self.label_icon_1.move(60,8)
+        self.label_icon_1.move(60, 8)
         self.label_icon_1.resize(30, 30)
 
-        self.welcomeLabel = QLabel("Group Five Solitaire", self)
+        self.welcomeLabel = QLabel("     Welcome To \nGroup Five Solitaire", self)
         self.welcomeLabel.setStyleSheet(StyleSheet_User_Pref)
-        self.welcomeLabel.move(100, 15)
+        self.welcomeLabel.move(100, 8)
 
         self.label_icon_2 = QLabel(self)
         self.label_icon_2.setPixmap(self.icon1)
@@ -911,7 +1168,7 @@ class User(QDialog):
         self.userName = QLineEdit(self)
         self.userName.resize(200, 30)
         self.userName.move(50, 75)
-        self.userName.setPlaceholderText("root user")
+        self.userName.setPlaceholderText(USER_NAME)
         self.userName.setStyleSheet(StyleSheet_User_Pref)
 
         self.whatBackground = QLabel("Background Colour", self)
@@ -929,40 +1186,36 @@ class User(QDialog):
         self.whatCardColour.setStyleSheet(StyleSheet_User_Pref)
         self.whatCardColour.move(180, 130)
 
-
-        cardBackList = ["Green", "Blue", "Grey", "Purple", "Red", "Yellow"]
+        card_back_list = ["Green", "Blue", "Grey", "Purple", "Red", "Yellow"]
         self.back_colour_combo_box = QComboBox(self)
         self.back_colour_combo_box.setStyleSheet(StyleSheet_User_Pref)
-        self.back_colour_combo_box.addItems(cardBackList)
+        self.back_colour_combo_box.addItems(card_back_list)
         self.back_colour_combo_box.setGeometry(180, 150, 95, 30)
         self.back_colour_combo_box.currentIndexChanged.connect(self.selection_change_card)
-
-
 
         self.button = QPushButton(self)
         self.button.setStyleSheet(StyleSheet_User_Pref)
         self.button.setText("Play!")
-        self.button.move(75,210)
-        self.button.resize(150,30)
-        self.button.clicked.connect(self.startMainWindow)
+        self.button.move(75, 210)
+        self.button.resize(150, 30)
+        self.button.clicked.connect(self.start_main_window)
 
         self.quit_button = QPushButton(self)
         self.quit_button.setStyleSheet(StyleSheet_User_Pref)
         self.quit_button.setText("Quit")
         self.quit_button.move(75, 255)
-        self.quit_button.resize(150,20)
-        self.quit_button.clicked.connect(self.stopApplication)
-
+        self.quit_button.resize(150, 20)
+        self.quit_button.clicked.connect(self.stop_application)
 
         self.center()
-        self.oldPos = self.pos()
+        # self.oldPos = self.pos()
         self.show()
 
-    def saveUserName(self):
+    def save_user_name(self):
         global USER_NAME
         if self.userName.text():
             USER_NAME = self.userName.text()
-            # print("saveUserName: ", USER_NAME)
+            # print("save_user_name: ", USER_NAME)
         # if no player name, it should show root user
 
     def selection_change_card(self):
@@ -987,15 +1240,15 @@ class User(QDialog):
         if n == 0:
             felt = QBrush(QColor(15, 99, 66))  # green default
         elif n == 1:
-            felt = QBrush(QColor(240, 170, 158))   # red
+            felt = QBrush(QColor(240, 170, 158))  # red
         elif n == 2:
-            felt = QBrush(QColor(22, 18, 25))   # eggplant
+            felt = QBrush(QColor(22, 18, 25))  # eggplant
         elif n == 3:
-            felt = QBrush(QColor(166, 137, 98)) # tan??
+            felt = QBrush(QColor(166, 137, 98))  # tan??
         elif n == 4:
-            felt = QBrush(QColor(145, 17, 38))    # old brick
+            felt = QBrush(QColor(145, 17, 38))  # old brick
         else:
-            felt = QBrush(QColor(78, 118, 167))     # dull blue
+            felt = QBrush(QColor(78, 118, 167))  # dull blue
         nnnn = n
 
     def center(self):
@@ -1006,20 +1259,20 @@ class User(QDialog):
 
     # mouse press events to move the interface around without the frame of interface
     # visibile
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
+    # def mousePressEvent(self, event):
+    #     self.oldPos = event.globalPos()
+    #
+    # def mouseMoveEvent(self, event):
+    #     delta = QPoint (event.globalPos() - self.oldPos)
+    #     self.move(self.x() + delta.x(), self.y() + delta.y())
+    #     self.oldPos = event.globalPos()
 
-    def mouseMoveEvent(self, event):
-        delta = QPoint (event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
-
-    def startMainWindow(self):
-        self.saveUserName()
+    def start_main_window(self):
+        self.save_user_name()
         main = MainWindow()
         self.close()
 
-    def stopApplication(self):
+    def stop_application(self):
         sys.exit()
 
 
@@ -1029,20 +1282,21 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
         global felt
         self.countup = 0
-        self.stock_pile_rotation = 0
-
+        # self.stock_pile_rotation = 0
 
         view = QGraphicsView()
         self.scene = QGraphicsScene()
-        self.scene.setSceneRect(QRectF(-15, -20, *WINDOW_SIZE))  # -20 to show timer and score on load up
+        # self.scene.setSceneRect(QRectF(-15, -20, *WINDOW_SIZE))  # -20 to show timer and score on load up
+        self.scene.setSceneRect(QRectF(0, -10, *WINDOW_SIZE))  # -10 to show timer and score on load up
 
-        #felt = QBrush(QColor(15, 99, 66))
+        # felt = QBrush(QColor(15, 99, 66))
         self.scene.setBackgroundBrush(felt)
 
         view.setScene(self.scene)
         view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
+        view.verticalScrollBar().blockSignals(True)
+        view.horizontalScrollBar().blockSignals(True)
         # Timer for the win animation only.
         self.timer = QTimer()
         self.timer.setInterval(5)
@@ -1059,22 +1313,21 @@ class MainWindow(QMainWindow):
 
         menu.addSeparator()
 
-        option_action = QAction("User Preferences", self)
+        option_action = QAction(QIcon(os.path.join('Images', 'Icons/preferences.ico')), "Preferences", self)
         option_action.triggered.connect(self.open_user_prefs)
         menu.addAction(option_action)
 
         menu.addSeparator()
 
-        score_action = QAction("Highscores", self)
+        score_action = QAction(QIcon(os.path.join('Images', 'Icons/podium.ico')), "Highscores", self)
         score_action.triggered.connect(self.open_highscores)
         menu.addAction(score_action)
 
         menu.addSeparator()
 
-        quit_action = QAction("Quit", self)
+        quit_action = QAction(QIcon(os.path.join('Images', 'Icons/quitico.ico')), "Quit", self)
         quit_action.triggered.connect(self.quit)
         menu.addAction(quit_action)
-
 
         optionmenu = self.menuBar().addMenu("&Options")
 
@@ -1121,9 +1374,8 @@ class MainWindow(QMainWindow):
         roundgroup.addAction(roundsu_action)
         roundgroup.setExclusive(True)
 
-
         helpmenu = self.menuBar().addMenu("&About")
-        help_action = QAction(QIcon(os.path.join('Images', 'Icons/info.ico')), "Rules", self)
+        help_action = QAction(QIcon(os.path.join('Images', 'Icons/info.ico')), "Tutorial and Rules", self)
         help_action.triggered.connect(self.show_help)
         helpmenu.addAction(help_action)
 
@@ -1144,10 +1396,6 @@ class MainWindow(QMainWindow):
                 card.signals.doubleclicked.connect(lambda card=card: self.auto_drop_card(card))
                 card.helpers.updated_score.connect(self.show_score)
                 card.helpers.updated_moves.connect(self.show_moves)
-
-
-        self.setCentralWidget(view)
-        self.setFixedSize(*WINDOW_SIZE)
 
         self.deckstack = DeckStack()
         self.deckstack.setPos(OFFSET_X, OFFSET_Y)
@@ -1183,57 +1431,66 @@ class MainWindow(QMainWindow):
 
         self.shuffle_and_stack()
 
+        # @Timer_LABEL
         self.timerText = QGraphicsSimpleTextItem('00:00:00')
-        self.timerText.setFont(QFont('Fantasy', 12))
+        self.timerText.setFont(QFont('Fantasy', FONT_SIZE))
         self.timerText.setBrush(QColor('white'))
         self.scene.addItem(self.timerText)
-        self.timerText.setPos(980, 0)
+        self.timerText.setPos(WINDOW_SIZE[0] * 0.95, 0)
         self.get_timer()
 
+        # @Score_LABEL
         self.scoreText = QGraphicsSimpleTextItem('Score:')
-        self.scoreText.setFont(QFont('Fantasy', 12))
+        self.scoreText.setFont(QFont('Fantasy', FONT_SIZE))
         self.scoreText.setBrush(QColor('white'))
         self.scene.addItem(self.scoreText)
-        self.scoreText.setPos(700, 0)
+        self.scoreText.setPos((WINDOW_SIZE[0] * 0.5) - self.scoreText.boundingRect().width(), 0)
 
-        self.actualScore = QGraphicsSimpleTextItem("1000")
-        self.actualScore.setFont(QFont('Fantasy', 12))
+        self.actualScore = QGraphicsSimpleTextItem("0")
+        self.actualScore.setFont(QFont('Fantasy', FONT_SIZE))
         self.actualScore.setBrush(QColor('white'))
-        self.actualScore.setPos(750, 0)
+        self.actualScore.setPos(self.scoreText.pos().x() + self.scoreText.boundingRect().width() + LABEL_OFFSET_SCORE,
+                                0)
         self.scene.addItem(self.actualScore)
 
+        # @Moves_LABEL
         self.movesLabel = QGraphicsSimpleTextItem("Moves:")
-        self.movesLabel.setFont(QFont('Fabtasy', 12))
+        self.movesLabel.setFont(QFont('Fabtasy', FONT_SIZE))
         self.movesLabel.setBrush(QColor('white'))
-        self.movesLabel.setPos(825, 0)
+        self.movesLabel.setPos((WINDOW_SIZE[0] * 0.75 - self.movesLabel.boundingRect().width()), 0)
         self.scene.addItem(self.movesLabel)
 
-        self.actualMoves = QGraphicsSimpleTextItem("300")
-        self.actualMoves.setFont(QFont('Fabtasy', 12))
+        self.actualMoves = QGraphicsSimpleTextItem("0")
+        self.actualMoves.setFont(QFont('Fabtasy', FONT_SIZE))
         self.actualMoves.setBrush(QColor('white'))
-        self.actualMoves.setPos(877, 0)
+        self.actualMoves.setPos(self.movesLabel.pos().x() + self.movesLabel.boundingRect().width() + LABEL_OFFSET_SCORE,
+                                0)
         self.scene.addItem(self.actualMoves)
 
-        self.stockpileRotationLabel = QGraphicsSimpleTextItem("Stockpile Rotated:")
-        self.stockpileRotationLabel.setFont(QFont('Fantasy', 12))
-        self.stockpileRotationLabel.setBrush(QColor('white'))
-        self.scene.addItem(self.stockpileRotationLabel)
-        self.stockpileRotationLabel.setPos(50, 0)
+        # @PlayerName_LABEL
+        self.playerNameLabel = QGraphicsSimpleTextItem("Current Player:")
+        self.playerNameLabel.setFont(QFont('Fantasy', FONT_SIZE))
+        self.playerNameLabel.setBrush(QColor('white'))
+        self.playerNameLabel.setPos(WINDOW_SIZE[0] * 0.04, 0)
+        self.scene.addItem(self.playerNameLabel)
 
-        self.actualStockPileRotation = QGraphicsSimpleTextItem("0")
-        self.actualStockPileRotation.setFont(QFont('Fantasy', 12))
-        self.actualStockPileRotation.setBrush(QColor('white'))
-        self.actualStockPileRotation.setPos(180, 0)
-        self.scene.addItem(self.actualStockPileRotation)
+        self.actualPlayerName = QGraphicsSimpleTextItem(USER_NAME)
+        self.actualPlayerName.setFont(QFont('Fantasy', FONT_SIZE))
+        self.actualPlayerName.setBrush(QColor('white'))
+        self.actualPlayerName.setPos(
+            self.playerNameLabel.pos().x() + self.playerNameLabel.boundingRect().width() + LABEL_OFFSET_SCORE, 0)
+        self.scene.addItem(self.actualPlayerName)
 
         self.setWindowTitle("Group 5 Solitaire")
         self.setWindowIcon(QIcon('Images/Icons/frameiconico.ico'))
+        self.setCentralWidget(view)
+        self.setFixedSize(*WINDOW_SIZE)
         self.show()
-
 
     def open_user_prefs(self):
         self.userpref = UserPreference()
         self.userpref.change_colour_signal.connect(self.change_background)
+        self.userpref.change_name_signal.connect(self.change_name_of_player)
         # self.userpref.updated_back_card.connect(self.change_card_back)
 
     def open_highscores(self):
@@ -1244,17 +1501,20 @@ class MainWindow(QMainWindow):
 
     def change_background(self, n):
         if n == 0:
-            self.scene.setBackgroundBrush(QBrush(QColor(15, 99, 66)))   # green default
+            self.scene.setBackgroundBrush(QBrush(QColor(15, 99, 66)))  # green default
         elif n == 1:
-            self.scene.setBackgroundBrush(QBrush(QColor(240, 170, 158)))    # red
+            self.scene.setBackgroundBrush(QBrush(QColor(240, 170, 158)))  # red
         elif n == 2:
-            self.scene.setBackgroundBrush(QBrush(QColor(22, 18, 25)))   # eggplant
+            self.scene.setBackgroundBrush(QBrush(QColor(22, 18, 25)))  # eggplant
         elif n == 3:
-            self.scene.setBackgroundBrush(QBrush(QColor(166, 137, 98)))     # tan??
+            self.scene.setBackgroundBrush(QBrush(QColor(166, 137, 98)))  # tan??
         elif n == 4:
             self.scene.setBackgroundBrush(QBrush(QColor(145, 17, 38)))
         else:
             self.scene.setBackgroundBrush(QBrush(QColor(78, 118, 167)))
+
+    def change_name_of_player(self, new_name):
+        self.actualPlayerName.setText(new_name)
 
     def reset_stockpile_rotation(self):
         self.stock_pile_rotation = 0
@@ -1289,21 +1549,21 @@ class MainWindow(QMainWindow):
         self.my_qtimer = QTimer(self)
         self.my_qtimer.timeout.connect(self.timer_ticking)
         self.my_qtimer.start(1000)
-        self.updateTimerDisplay()
+        self.update_timer_display()
 
     def reset_timer(self):
         self.countup = 0
         self.timer_ticking()
-        self.updateTimerDisplay()
+        self.update_timer_display()
 
     def timer_ticking(self):
         self.countup += 1
         if self.countup <= 0:
             self.timer.stop()
 
-        self.updateTimerDisplay()
+        self.update_timer_display()
 
-    def updateTimerDisplay(self):
+    def update_timer_display(self):
         text = "%02d:%02d" % (self.countup / 60, self.countup % 60)
         self.timerText.setText(text)
 
@@ -1314,43 +1574,47 @@ class MainWindow(QMainWindow):
         global MOVES, TOTAL_SCORE, WON_CONDITION
         if WON_CONDITION:
             reply_won_btw = QMessageBox.question(self, "Restart Game", "Are you sure you want to start a new game?",
-                                         QMessageBox.Yes | QMessageBox.No)
+                                                 QMessageBox.Yes | QMessageBox.No)
             if reply_won_btw == QMessageBox.Yes:
                 self.get_timer()
                 self.shuffle_and_stack()
                 self.reset_show_score()
                 self.reset_timer()
-                self.reset_stockpile_rotation()
+                # self.reset_stockpile_rotation()
+                WON_CONDITION = False  # insure that the won condition is reset to false if player already won
+                # and wants to restart the game
         else:
-
-            reply = QMessageBox.question(self, "Restart Game", "Are you sure you want to start a new game?",
-                                     QMessageBox.Yes | QMessageBox.No)
+            reply = QMessageBox.question(self, "Restart Game", "Are you sure you want to start a new game "
+                                                               "and save the current score?",
+                                         QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Yes:
-                if MOVES > 3 or TOTAL_SCORE > 10:
-                    # print("appended! restart")
-                    self.append_To_Scores()
+                self.append_to_scores()
                 self.shuffle_and_stack()
                 self.reset_show_score()
                 self.reset_timer()
-                self.reset_stockpile_rotation()
-
+                # self.reset_stockpile_rotation()
+            elif reply == QMessageBox.No:
+                self.shuffle_and_stack()
+                self.reset_show_score()
+                self.reset_timer()
+                # self.reset_stockpile_rotation()
 
     def write_json(self, datas, filename="Scores.json"):
         with open(filename, 'w') as wf:
             json.dump(datas, wf, indent=4)
 
     # append to Scores.json
-    def append_To_Scores(self):
+    def append_to_scores(self):
         global TOTAL_SCORE, MOVES, USER_NAME
         data = {
             'user': USER_NAME,
             'Time Of Completion': str(self.timerText.text()),
             'Moves Taken': str(self.actualMoves.text()),
-            'Score': str(self.actualScore.text()),
+            'Score': int(self.actualScore.text()),
             'Played At': str(QDateTime.currentDateTime().toString(Qt.DefaultLocaleShortDate))
         }
 
-        try: # incase file gets deleted or something bad happens
+        try:  # incase file gets deleted or something bad happens
             with open("Scores.json") as appendTingz:
                 self.score_file = json.load(appendTingz)
                 self.temp = self.score_file["scores:"]
@@ -1363,15 +1627,17 @@ class MainWindow(QMainWindow):
     def quit(self):
         global MOVES, TOTAL_SCORE, WON_CONDITION
         if WON_CONDITION:
-            reply_won_btw = QMessageBox.question(self, "Quit", "Do you really want to quit?", QMessageBox.Yes | QMessageBox.No)
+            reply_won_btw = QMessageBox.question(self, "Quit", "Do you really want to quit?",
+                                                 QMessageBox.Yes | QMessageBox.No)
             if reply_won_btw == QMessageBox.Yes:
                 sys.exit()
         else:
-            reply = QMessageBox.question(self, "Quit And Save?", "Do you want to add your current stats to the scoreboard?",
+            reply = QMessageBox.question(self, "Quit And Save?",
+                                         "Do you want to add your current stats to the scoreboard?",
                                          QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Yes:
                 # print("appended!")
-                self.append_To_Scores()
+                self.append_to_scores()
                 sys.exit()
             elif reply == QMessageBox.No:
                 sys.exit()
@@ -1421,7 +1687,7 @@ class MainWindow(QMainWindow):
 
         elif self.deckstack.can_restack(self.rounds_n):
             self.deckstack.restack(self.dealstack)
-            self.stockpile_rotation()
+            # self.stockpile_rotation()
             self.deckstack.update_stack_status(self.rounds_n)
 
     def auto_drop_card(self, card):
@@ -1439,7 +1705,7 @@ class MainWindow(QMainWindow):
             # print("You Completed the game!")
             self.my_qtimer.stop()
             WON_CONDITION = True
-            self.append_To_Scores()
+            self.append_to_scores()
             # Add click-proof cover to play area.
             self.animation_event_cover.show()
             # Get the stacks of cards from the drop,stacks.
@@ -1473,11 +1739,17 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication([])
 
+    # test each window here, create object simply
+    # main = MainWindow()
+    # user = UserPreference()
+    # test = HelpWindow()
+    # test = UserHighscores()
+    #
+    #
     splash = SplashScreen()
     splash.show()
     splash.progress()
-
     user = User()
-
     splash.finish(user)
+
     app.exec_()
