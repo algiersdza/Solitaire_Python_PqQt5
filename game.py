@@ -460,7 +460,7 @@ class DealStack(StackBase):
 # tableau
 class WorkStack(StackBase):
     offset_x = 0
-    offset_y = 30  # card spacing y axis
+    offset_y = 43  # card spacing y axis
     # offset_y = 15
     offset_y_back = 15  # card back spacing y axis
 
@@ -1436,7 +1436,7 @@ class MainWindow(QMainWindow):
         self.timerText.setFont(QFont('Fantasy', FONT_SIZE))
         self.timerText.setBrush(QColor('white'))
         self.scene.addItem(self.timerText)
-        self.timerText.setPos(WINDOW_SIZE[0] * 0.95, 0)
+        self.timerText.setPos(WINDOW_SIZE[0] * 0.90, 0)
         self.get_timer()
 
         # @Score_LABEL
